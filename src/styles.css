@@ -69,11 +69,14 @@ h1 { font-size: clamp(26px, 2.6vw, 34px); margin: 0 0 10px; font-weight: 600; le
 .character-content { text-align: center; }
 .character-content h2 { font-weight: 500; font-size: 17px; margin: 2px 0 20px; }
 .character-pinyin { font-size: 18px; line-height: 1.8; color: var(--muted); min-height: 32px; }
-.hanzi { font-size: 108px; line-height: 1.23; font-weight: 500; color: #2d3730; }
+.hanzi { display: block; margin: 0 auto; padding: 0 12px; border: none; border-radius: 12px; background: transparent; font-size: 108px; line-height: 1.23; font-weight: 500; color: #2d3730; cursor: pointer; }
+.hanzi:hover:not(:disabled) { background: var(--green-soft); }
+.hanzi:disabled { cursor: default; }
 .character-word { font-size: 19px; font-weight: 500; margin: 10px 0 5px; }
 .character-sentence { color: var(--muted); margin: 0 0 24px; font-size: 13px; line-height: 1.8; }
 .read-button { height: 46px !important; padding: 0 20px !important; border: none !important; background: #e8eddf !important; color: #3d5d44 !important; border-radius: 12px !important; gap: 9px !important; }
 .read-button[disabled] { opacity: .6; }
+.read-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
 .audio-status { color: var(--muted); font-size: 11px; margin: 12px auto 0; min-height: 19px; max-width: 29em; line-height: 1.7; }
 .lesson-footer { border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 19px; }
 .lesson-progress { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 17px; }

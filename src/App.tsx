@@ -76,6 +76,12 @@ export function App() {
     setAudioError('');
   }
 
+  function readCharacter(entry: Character) {
+    if (!sound) return;
+    setAudioError('');
+    speak(entry.hanzi, setAudioError);
+  }
+
   function changeLevel(nextLevel: LevelFilter) {
     window.speechSynthesis?.cancel();
     setLevel(nextLevel);
@@ -144,11 +150,14 @@ export function App() {
                 <div className="character-content" key={character.id}>
                   <h2 id="lesson-title">一起认识这个字</h2>
                   <div className="character-pinyin" aria-hidden={!pinyin}>{pinyin ? character.pinyin : '\u00a0'}</div>
-                  <div className="hanzi">{character.hanzi}</div>
+                  <button type="button" className="hanzi" aria-label={`朗读汉字“${character.hanzi}”`} title="点击读这个字" disabled={!sound} onClick={() => readCharacter(character)}>{character.hanzi}</button>
                   <p className="character-word">{character.word}</p><span className="word-pronunciation-note">拼音按例词中的读音</span>
                   <p className="character-sentence">{character.sentence}</p>
-                  <Button variant="secondary" onPress={() => { setAudioError(''); speak(`${character.word}。${character.sentence}`, setAudioError); }} isDisabled={!sound} UNSAFE_className="read-button"><Volume2 size={19} /><span>读给我听</span></Button>
-                  <p className="audio-status" role="status">{audioError || (!sound ? '声音已关闭' : '点击按钮，听一听它的名字。')}</p>
+                  <div className="read-actions">
+                    <Button variant="secondary" onPress={() => readCharacter(character)} isDisabled={!sound} UNSAFE_className="read-button"><Volume2 size={19} /><span>读这个字</span></Button>
+                    <Button variant="secondary" onPress={() => { setAudioError(''); speak(`${character.word}。${character.sentence}`, setAudioError); }} isDisabled={!sound} UNSAFE_className="read-button"><Volume2 size={19} /><span>读给我听</span></Button>
+                  </div>
+                  <p className="audio-status" role="status">{audioError || (!sound ? '声音已关闭' : '点击大字听单字；“读给我听”播放词语和例句。')}</p>
                 </div>
               </div>
               <footer className="lesson-footer">
