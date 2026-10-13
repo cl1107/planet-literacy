@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { ActionButton, Button, Switch } from '@adobe/react-spectrum';
 import { ArrowLeft, ArrowRight, BookOpen, ChevronRight, CircleHelp, Heart, LibraryBig, Orbit, Pencil, Rocket, Settings2, Sparkles, Star, Volume2, VolumeX } from 'lucide-react';
+import { DiscoveryArt } from './components/DiscoveryArt';
 import { PlanetArt } from './components/PlanetArt';
 import { CharacterLibrary } from './components/CharacterLibrary';
 import { LevelTabs } from './components/LevelTabs';
-import { characters, themes } from './content/themes';
-import type { ExplorationTheme } from './content/themes';
+import { characters } from './content/themes';
+import { planets, planetsForLevel, nextPlanet } from './content/planets';
+import type { DiscoveryPlanet } from './content/planets';
 import type { Character } from './content/types';
-import { filterCharacters, lessonBatch, nextBatchIndex } from './content/learning';
+import { filterCharacters } from './content/learning';
 import type { LevelFilter } from './content/learning';
 
 type Section = 'learn' | 'words' | 'write' | 'library' | 'cards' | 'growth' | 'parents';
@@ -47,8 +49,8 @@ function speak(text: string, onError: (message: string) => void) {
 
 export function App() {
   const [section, setSection] = useState<Section>('learn');
-  const [theme, setTheme] = useState<ExplorationTheme>(() => {
-    const first = themes[0];
+  const [theme, setTheme] = useState<DiscoveryPlanet>(() => {
+    const first = planets[0];
     if (!first) throw new Error('至少需要一个识字主题');
     return first;
   });
@@ -59,11 +61,16 @@ export function App() {
   const [audioError, setAudioError] = useState('');
   const available = filterCharacters({ items: theme.characters, level });
   const character = available[wordIndex];
-  const batch = lessonBatch({ items: available, index: wordIndex });
-  const batchPosition = wordIndex - batch.start;
+  const route = planetsForLevel(level);
+  const planetPosition = route.findIndex((item) => item.id === theme.id);
+  const destinations = route.slice(Math.floor(planetPosition / 6) * 6, Math.floor(planetPosition / 6) * 6 + 6);
+
+  function flyNext() {
+    selectTheme(nextPlanet({ currentId: theme.id, level }));
+  }
   const pageTitle = navigation.find((item) => item.id === section)?.label;
 
-  function selectTheme(nextTheme: ExplorationTheme) {
+  function selectTheme(nextTheme: DiscoveryPlanet) {
     window.speechSynthesis?.cancel();
     setTheme(nextTheme);
     setWordIndex(0);
@@ -85,12 +92,17 @@ export function App() {
   function changeLevel(nextLevel: LevelFilter) {
     window.speechSynthesis?.cancel();
     setLevel(nextLevel);
+    if (!filterCharacters({ items: theme.characters, level: nextLevel }).length) {
+      const first = planetsForLevel(nextLevel)[0];
+      if (!first) throw new Error('当前分级没有星球');
+      setTheme(first);
+    }
     setWordIndex(0);
     setAudioError('');
   }
 
   function openCharacter(entry: Character) {
-    const nextTheme = themes.find((item) => item.id === entry.themeId);
+    const nextTheme = planets.find((item) => item.characters.some((character) => character.id === entry.id));
     if (!nextTheme) throw new Error(`汉字 ${entry.hanzi} 引用了未知主题`);
     const index = nextTheme.characters.findIndex((item) => item.id === entry.id);
     if (index < 0) throw new Error(`主题 ${nextTheme.name} 缺失汉字 ${entry.hanzi}`);
@@ -133,22 +145,27 @@ export function App() {
 
         <main id="main" tabIndex={-1}>
           {section === 'learn' && <>
-            <div className="page-heading"><div><h1>今天，去哪个星球？</h1><p>{characters.length} 个常用字，选一个喜欢的地方慢慢探索。</p></div><span className="session-note"><Sparkles size={17} /> 一次认识 3 个字</span></div>
+            <div className="page-heading"><div><h1>出发，发现一颗新星球！</h1><p>{route.length} 颗想象星球，听听它的故事，认认名字里的字。</p></div><span className="session-note"><Sparkles size={17} /> 每颗星认识 1–3 个字</span></div>
             <LevelTabs selected={level} onChange={changeLevel} items={characters} />
-            <div className="theme-picker" role="group" aria-label="选择探索主题">
-              {themes.map((item) => (
+            <div className="theme-picker" role="group" aria-label="选择想象星球">
+              {destinations.map((item) => (
                 <ActionButton key={item.id} onPress={() => selectTheme(item)} aria-pressed={theme.id === item.id} UNSAFE_className={`theme-button ${theme.id === item.id ? 'is-selected' : ''}`}>
-                  <PlanetArt kind={item.id} /><span>{item.name}</span><small className="theme-count">{filterCharacters({ items: item.characters, level }).length} 字</small>
+                  <DiscoveryArt appearance={item.appearance} /><span>{item.name}</span><small className="theme-count">{filterCharacters({ items: item.characters, level }).length} 字</small>
                 </ActionButton>
               ))}
             </div>
 
+            <div className="flight-route"><span>星图 {Math.floor(planetPosition / 6) + 1} / {Math.ceil(route.length / 6)} · 随时可以飞往下一颗</span><ActionButton onPress={flyNext}><Rocket size={18} /><span>发现下一颗星球</span></ActionButton></div>
             {character ? <section className="lesson" aria-labelledby="lesson-title">
-              <div className="lesson-top"><span className="lesson-label"><span className="status-dot" /> 认识汉字 · {available.length} 字可探索</span><ActionButton isQuiet aria-label="换一组字" onPress={() => { window.speechSynthesis?.cancel(); setAudioError(''); setWordIndex(nextBatchIndex({ index: wordIndex, total: available.length })); }} UNSAFE_className="change-batch">换一组字</ActionButton></div>
+              <div className="planet-story">
+                <h2 id="planet-title">{theme.name}</h2>
+                <p>{[...theme.introduction].map((glyph, index) => available.some((entry) => entry.hanzi === glyph) ? <mark key={index}>{glyph}</mark> : glyph)}</p>
+                <Button variant="secondary" isDisabled={!sound} onPress={() => { setAudioError(''); speak(`${theme.name}。${theme.introduction}`, setAudioError); }} UNSAFE_className="read-button"><Volume2 size={19} /><span>听星球介绍</span></Button>
+              </div>
               <div className="lesson-content">
-                <div className="planet-scene"><div className="orbit-line" /><PlanetArt kind={theme.id} /><span className="scene-star star-one"><Star size={17} /></span><span className="scene-star star-two"><Sparkles size={20} /></span><span className="scene-dot" /><span className="scene-caption">下一站，{theme.name}</span></div>
+                <div className="planet-scene"><div className="orbit-line" /><DiscoveryArt appearance={theme.appearance} /><span className="scene-star star-one"><Star size={17} /></span><span className="scene-star star-two"><Sparkles size={20} /></span><span className="scene-dot" /><span className="scene-caption">已抵达，{theme.name}</span></div>
                 <div className="character-content" key={character.id}>
-                  <h2 id="lesson-title">一起认识这个字</h2>
+                  <h2 id="lesson-title">在星球故事里找到这个字</h2>
                   <div className="character-pinyin" aria-hidden={!pinyin}>{pinyin ? character.pinyin : '\u00a0'}</div>
                   <button type="button" className="hanzi" aria-label={`朗读汉字“${character.hanzi}”`} title="点击读这个字" disabled={!sound} onClick={() => readCharacter(character)}>{character.hanzi}</button>
                   <p className="character-word">{character.word}</p><span className="word-pronunciation-note">拼音按例词中的读音</span>
@@ -161,13 +178,13 @@ export function App() {
                 </div>
               </div>
               <footer className="lesson-footer">
-                <span className="lesson-progress">本组 {batchPosition + 1} / {batch.items.length} 个字 <span className="progress-dots" aria-hidden="true">{batch.items.map((item, index) => <i key={item.id} className={index === batchPosition ? 'active' : ''} />)}</span></span>
+                <span className="lesson-progress">本站 {wordIndex + 1} / {available.length} 个字 <span className="progress-dots" aria-hidden="true">{available.map((item, index) => <i key={item.id} className={index === wordIndex ? 'active' : ''} />)}</span></span>
                 <div className="lesson-controls">
                   <ActionButton isQuiet isDisabled={wordIndex === 0} aria-label="上一个字" onPress={() => { window.speechSynthesis?.cancel(); setAudioError(''); setWordIndex((value) => value - 1); }}><ArrowLeft size={20} /></ActionButton>
-                  <Button variant="accent" onPress={() => { window.speechSynthesis?.cancel(); setAudioError(''); setWordIndex((value) => value === available.length - 1 ? 0 : value + 1); }} UNSAFE_className="next-button"><span>{wordIndex === available.length - 1 ? '从头看看' : batchPosition === batch.items.length - 1 ? '下一组字' : '下一个字'}</span><ArrowRight size={19} /></Button>
+                  <Button variant="accent" onPress={() => { window.speechSynthesis?.cancel(); setAudioError(''); if (wordIndex === available.length - 1) flyNext(); else setWordIndex((value) => Math.min(value + 1, available.length - 1)); }} UNSAFE_className="next-button"><span>{wordIndex === available.length - 1 ? '飞往新星球' : '下一个字'}</span><ArrowRight size={19} /></Button>
                 </div>
               </footer>
-              <p className="theme-position">{theme.name}探索 · 当前第 {wordIndex + 1} / {available.length} 个字 · {theme.subtitle}</p>
+              <p className="theme-position">第 {planetPosition + 1} / {route.length} 颗想象星球 · 名称和故事用于识字，不代表真实天体</p>
             </section> : <section className="library-empty"><h2>这个主题暂时没有这一组的字</h2><p>换一个主题，或查看这个主题的全部汉字。</p><Button variant="secondary" onPress={() => changeLevel('all')}>查看全部分级</Button></section>}
             <div className="upcoming"><CircleHelp size={18} /><span>接下来还可以：看图识字、听音选字、翻卡配对。</span><span className="phase-label">已规划，待开发</span></div>
             <p className="gentle-note">每个孩子都有自己的节奏，陪伴比速度更重要。</p>
@@ -177,7 +194,7 @@ export function App() {
 
           {section === 'parents' && <>
             <div className="page-heading"><div><h1>给爸爸妈妈</h1><p>陪孩子一起，把兴趣变成小小的发现。</p></div></div>
-            <section className="parents-panel"><h2>学习偏好</h2><Switch isSelected={sound} onChange={() => toggleSound()}>开启朗读声音</Switch><Switch isSelected={pinyin} onChange={setPinyin}>显示拼音提示</Switch><p className="settings-note">当前设置在本次打开期间生效。设备朗读需系统支持中文语音。</p><hr /><h2>一起学习的小建议</h2><p>先看字、听声音，再指一指生活里的东西。每次认识几个字就够了，孩子累了随时停下来。</p><p>字库有 {characters.length} 个可选常用字，三个分级均为产品编排，没有统一的幼儿园必认字数。可以随时换组、跳过或休息，无需学完。</p><p>尚未进行掌握评估，也不保存学习记录。完整规划包含复习安排、进度报告和数据导出。</p></section>
+            <section className="parents-panel"><h2>学习偏好</h2><Switch isSelected={sound} onChange={() => toggleSound()}>开启朗读声音</Switch><Switch isSelected={pinyin} onChange={setPinyin}>显示拼音提示</Switch><p className="settings-note">当前设置在本次打开期间生效。设备朗读需系统支持中文语音。</p><hr /><h2>一起学习的小建议</h2><p>先看字、听声音，再指一指生活里的东西。每次认识几个字就够了，孩子累了随时停下来。</p><p>字库有 {characters.length} 个可选常用字，三个分级均为产品编排，没有统一的幼儿园必认字数。可以随时换星球、跳过或休息，无需学完。</p><p>尚未进行掌握评估，也不保存学习记录。完整规划包含复习安排、进度报告和数据导出。</p></section>
           </>}
 
           {(section === 'words' || section === 'write' || section === 'cards' || section === 'growth') && (() => {

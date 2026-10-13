@@ -126,3 +126,11 @@ h1 { font-size: clamp(26px, 2.6vw, 34px); margin: 0 0 10px; font-weight: 600; le
 .library-empty h2 { color: var(--ink); font-size: 18px; margin: 0; }.library-empty p { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 0; }.library-empty button { margin-top: 10px; min-height: 44px; }
 @media (max-width: 1100px) { .theme-button { height: 119px !important; }.character-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .level-tabs { gap: 6px; margin-bottom: 20px; }.level-tab { height: 65px !important; font-size: 11px !important; }.level-tab small { font-size: 10px; }.theme-button { height: 112px !important; }.character-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }.library-pagination { gap: 12px; }.theme-position { font-size: 10px; } }
+
+.flight-route { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -10px 0 24px; color: var(--muted); font-size: 12px; }
+.flight-route button { min-height: 48px; gap: 8px; }
+.planet-story { padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.planet-story h2 { font-size: 25px; margin: 0 0 12px; color: var(--ink); }
+.planet-story p { max-width: 42em; font-size: 17px; line-height: 2; margin: 0 0 18px; }
+.planet-story mark { background: #e5eadb; color: #304c38; border-radius: 3px; padding: 0 2px; font-weight: 600; }
+@media (max-width: 760px) { .flight-route { align-items: start; flex-direction: column; margin-top: -5px; }.planet-story h2 { font-size: 23px; }.planet-story p { font-size: 16px; }.theme-button { font-size: 12px !important; }.theme-button > span { white-space: normal; text-align: center; } }
